@@ -1,1 +1,246 @@
 # Course Work for Pluralsight Course 'Angular 2: First Look'
+
+https://app.pluralsight.com/library/courses/angular-2-first-look
+
+## Code Samples
+
+All code samples for this course can be found at http://angular2-first-look.azurewebsites.net/
+
+## Beyond the First Look
+
+Quickstart and tutorial at http://angular.io
+
+## Angular Architecture
+
+### Language Concepts
+
+* ES5
+* ES6/ES2015
+* TypeScript
+* Dart
+
+### AngularJS's Impact
+
+Angular 1 is widely used and has a huge ecosystem. There are approximately 1.1 million developers using Angular 1.
+
+### Comparing Concepts from Angular 1 to 2
+
+7 Key Comparisons:
+
+* Modules => Angular Modules (@NgModule)
+* Controllers => Components (@Component)
+* Structural Built-In Directives (ng-repeat => *ngFor, ng-if => *ngIf)
+  * Structural Directives are previxed by asterisk, which indicates we're changing the structure of the DOM
+* Data Binding
+  * Interpolation
+    * No longer need the "vm" context
+  * One Way Binding
+    * No longer need "ng-bind". Use square brackets
+    * `[innerText] (any valid property in HTML)`
+  * Event Binding
+    * ng-click, ng-blur, etc. no longer necessary
+    * enclose valid events in parens
+      * `<button (click)="log('click')" (blur)="log('blur')">OK</button>`
+  * Two Way Binding
+    * ng-model no longer necessary
+      * helper directive now with "Football in a Box"
+      * `<input [(ngModel)]="story.name">`
+* Removes the need for many directives
+  * we no longer need ng-style, ng-src, ng-href
+  * Since we can bind directly to valid HTML properties, we simply use `[style.visibility]`, `[src]` or `[href]`
+  * Ng2 template concepts remove over 40 Ng1 Built-In Directives
+* Services
+  * No longer have five kinds of services (`Factories`, `Services`, `Providers`, `Constants`, `Values`)
+  * Now there is only `Class`
+* Dependency Injection
+  * DI is different now
+* Filters => Pipes
+* Routing
+* HTTP
+* Events
+* Promises
+
+### Resources
+
+* https://angular.io/
+  * Developer Guides
+    * Cheat Sheet: https://angular.io/docs/ts/latest/guide/cheatsheet.html
+  * Tutorial
+    * Tour of Heroes: https://angular.io/docs/ts/latest/tutorial/
+
+## Angular Essentials: Modules, Component, Templates and Metadata
+
+### ES Modules
+
+Referred to simply as "modules". A module exports some asset (such as a Service). This is essentially 'destructuring'.
+
+### Angular Modules
+
+NgModules are specific to Angular. They help organize our app into cohesive blocks of related functionality.
+
+NgModules are basically containers of components, services and directives that are related to one another.
+
+Angular Modules are classes decorated by @NgModule.
+
+Roles of NgModules:
+* Import other modules
+* Identify components, pipes and directives
+* Export features
+* Provide services to injectors
+* Can be eagerly or lazily loaded
+
+There's always, at least, one module in our application (the root module).
+
+    @NgModule ({
+      imports: [
+        BrowserModule,
+        FormsModule
+      ],
+      declarations: [
+        VehiclesComponent
+      ],
+      providers: [
+        VehicleService
+      ],
+      bootstrap: [VehiclesComponent]
+    })
+    export class AppModule { }
+
+### Components
+
+A component contains app logic that controls a region of the UI that we call a view.
+
+Anatomy:
+
+    // Imports (use other modules)
+
+    import { Component } from '@angular/core';
+
+    import { Vehicle } from './vehicle.service';
+
+    // Metadata (describe the component)
+
+    @Component({
+      moduleId: module.id,
+      selector: 'story-vehicles',
+      templateUrl: 'vehicles.component.html'
+    })
+
+    // Class (define the component)
+
+    export class VehicleListComponent {
+      vehicles: Vehicle[];
+    }
+
+### Bootstrapping
+
+Assemble the app from components. Bootstrap the starting point.
+
+By convention we create main.ts:
+
+    import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+
+    import { AppModule } from './app/app.module';
+
+    platformBrowserDynamic().bootstrapModule(AppModule);
+
+### Templates
+
+Templates are basically the 'view'. Templates are connected to Components using either the `template` property or `templateUrl` property.
+
+Most often, we use `templateUrl`.
+
+We can create a hierarchical tree of components.
+
+### Metadata
+
+The metadata is always present and goes inside the decorators. One way we can use it is to tell a Component where the template is.
+
+We declare components, directives and pipes in an Angular Module.
+
+Prefer registering providers in Angular Modules instead of Angular Components.
+
+Components can have `@Output()` and `@Input()` parameters that allow a Component to interact with code hosting it.
+
+### @Output and @Input Decorators
+
+`@Output()` decorators allow the Component to emit data to the outside through `EventEmitter<>`s.
+
+These decorators are actually functions.
+
+### ViewChild
+
+The `@ViewChild()` decorator lets parent Components call methods on child Components.
+
+## Data Binding
+
+Use data binding to coordinate communication between a Component and its Template.
+
+`[(ngModel)]` is a special directive that gives us two-way data binding.
+
+In Angular, change detection is done based on unidirectional data flow.
+
+Benefits:
+
+* Easier widget integration
+* No more $apply
+* No more repeated digest cycles
+* No more watchers
+* No more performance issues with digest cycle and watcher limits
+
+### Interpolation
+
+Interpolation evaluates an expression between double curly braces.
+
+Angular has a `Safe Navigation Operator` in interpolated references, a.k.a. the `Elvis Operator`, which supresses errors when the property isn't available. `?.`
+
+#### JSON Pipes
+
+You can use this to see what properties are available on an object:
+
+    <pre>
+      { myObject | json }
+    </pre>
+
+### Property Binding (one-way)
+
+Use `[]` to send values from the Component to the Template. Alternatively use `bind-` assignment. 
+
+We set properties and events of DOM elements, not attributes.
+
+    {{expression}}
+    [target] = "expression"
+    bind-target = "expression"
+
+For attributes, use `attr.`
+
+    <button [attr.aria-label]="ok">ok</button> // Attribute binding
+
+    <div [class.isStopped]="isStopped">Stopped</div> // Class property binding
+
+    <button [style.color]="isStopped" ? 'red' : 'blue'"> // Style property binding
+
+### Event Bindings (one-way)
+
+Use `()` to send events from the template to the Component. Alternatively use the `on-` assignment.
+
+    (target) = "statement"
+    on-target = "statement"
+
+Event Binding Examples:
+
+    <button (click)="save()">Save</button>
+
+    <vehicle-detail (changed)="vehicleChanged()"></vehicle-detail>
+
+Pass messages:
+
+    <input [value]="vehicle.name" (input)="vehicle.name=$event.target.value">
+
+    // then in the Component
+
+    @Input() vehicle: Vehicle;
+    @Output() onChanged = new EventEmitter<Vehicle>();
+    changed() { this.onChanged.emit(this.vehicle); }
+
+You can bind to any event that an html element exposes, or ones we create.
