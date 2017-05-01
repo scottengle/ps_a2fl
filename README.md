@@ -220,6 +220,10 @@ For attributes, use `attr.`
 
     <button [style.color]="isStopped" ? 'red' : 'blue'"> // Style property binding
 
+When you want to specify a value, enclose the value in single quotes.
+
+    <div [style.background]="'#EEE'">    
+
 ### Event Bindings (one-way)
 
 Use `()` to send events from the template to the Component. Alternatively use the `on-` assignment.
@@ -244,3 +248,85 @@ Pass messages:
     changed() { this.onChanged.emit(this.vehicle); }
 
 You can bind to any event that an html element exposes, or ones we create.
+
+### Two Way Binding
+
+Use `[()]` (football in a box) to enable two-way binding between the Component and the Template.
+
+The `ngModel` directive comes with the FormsModule in Angular.
+
+    [(ngModel)]="expression"
+    bindon-ngModel="expression" // alternative syntax
+
+Using `ngModel`:
+
+    import { NgModule } from '@angular/core';
+    import { BrowserModule } from '@angular/platform-browser';
+    import { FormsModule } from '@angular/forms';
+
+    @NgModule({
+      imports: [
+        BrowserModule,
+        FormsModule
+      ]
+    })
+    // ...
+
+### Built-In Directives
+
+When Angular renders templates, it transforms the DOM according to instructions from Directives.
+
+* `[ngClass]`
+* `[ngStyle]`
+
+It is easier to set multiple styles with ngStyle:
+
+    <div [ngStyle]="setStyles()">{{vehicle.name}}</div>
+
+The same for classes
+
+    <div [ngClass]="setClasses()">{{vehicle.name}}</div>
+
+Structural Directives
+
+* `*ngFor`
+* `*ngIf`
+* `*ngSwitch`
+
+All of these built-ins are included in the CommonModule which is included in the BrowserModule.
+
+### Pipes
+
+Pipes allow us to transform data for display in a Template. AngularJS Filters are similar.
+
+String Pipes
+
+  * uppercase
+  * lowercase
+
+Date Pipes
+
+  * format
+  * expression
+
+Numeric Pipes
+
+  * currency
+  * percent
+  * number
+
+Async Pipes subscribes to a Promise or Observable, returning the latest value emitted.
+
+#### Custom Pipes
+
+You can create your own pipes using the `@Pipe` decorator.
+
+    import { Pipe, PipeTransform } from '@angular/core';
+    
+    @Pipe({ name: 'initCaps' })
+    export class InitCapsPipe implements PipeTransform {
+      transform(value: string, args?: any[]) { // 'args' is optional
+        return value.toLowerCase()
+          .replace(/(?:^|\s)[a-z]/g, m => m.toUpperCase());
+      }
+    }
