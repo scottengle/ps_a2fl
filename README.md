@@ -524,4 +524,211 @@ The Async Pipe is self-cleaning. It will automatically unsubscribe from the Obse
 
 The Async Pipe can handle both Promises and Observables.
 
-The Async Pipe 
+## Routing
+
+Don't forget to set your base URL: https://www.w3schools.com/tags/tag_base.asp
+
+### Routing Essentials
+
+Routing allows our application to navigate between different Components, passing parameters where needed.
+
+Steps to routing:
+
+* Import RouterModule from @angular/router
+* Define the routes
+* Define a module
+* Export the component list
+* Declare a <router-outlet>
+* Add [routerLink] bindings
+
+Example:
+
+    import { NgModule } from '@angular/core';
+    import { Routes, RouterModule } from '@angular/router';
+
+    const routes: Routes = [
+      { path: '', pathMatch: 'full', redirectTo: 'characters', },
+      { path: 'characters', component: CharacterListComponent },
+      { path: 'characters/:id', component: CharacterComponent },
+      { path: '**', pathMatch: 'full', component: PageNotFoundComponent }
+    ];
+
+    @NgModule({
+      imports: [RouterModule.forRoot(routes)],
+      exports: [RouterModule]
+    })
+    export class AppRoutingModule { }
+
+    export const routableComponents = [
+      CharacterListComponent,
+      CharacterComponent,
+      PageNotFoundComponent
+    ]
+
+We define a Routing Module and import it into the App Root or Feature Module.
+
+    // In app.module.ts
+
+    import { AppComponent } from './app.component';
+    import { AppRoutingModule, routableComponents } from './app-routing.module';
+
+    @NgModule({
+      imports: [BrowserModule, AppRoutingModule],
+      declarations: [AppComponent, routableComponents],
+      bootstrap: [AppComponent]
+    })
+    export class AppModule { }
+
+Add routing to the templates by using the RouterLink directive and define link parameters.
+
+    <nav>
+      <ul>
+        <li><a [routerLink]="['/characters']" href="">Characters</a></li>
+        <li><a [routerLink]="['/vehicles']" href="">Vehicles</a></li>
+      </ul>
+    </nav>
+
+`ng-view` has been replaced by `<router-outlet></router-outlet>`.
+
+### Routing Parameters
+
+You can define routing parameters using the `:`
+
+    const routes: Routes = [
+      { path: '', pathMatch: 'full', redirectTo: 'characters', },
+      { path: 'characters', component: CharacterListComponent },
+      { path: 'characters/:id', component: CharacterComponent },          // <= route parameter
+      { path: '**', pathMatch: 'full', component: PageNotFoundComponent }
+    ];
+
+You can pass data through routing with a few different ways:
+
+* Snapshot
+  * Easiest, as long as parameter values do not change
+* Observable
+  * Gets new parameter values when component is re-used
+* Resolvers
+  * Gets data before a component is loaded
+
+Snapshot Method
+
+    export class SessionComponent implements OnInit {
+      private id: any;
+
+      constructor( private route: ActivatedRoute ) { }
+
+      ngOnInit() {
+        this.id = Number.parseInt(this.route.snapshot.params['id']);
+        this.getSession();
+      }
+    }
+
+Observable Method
+
+    export class SessionComponent implements OnInit {
+      private id: any;
+
+      constructor( private route: ActivatedRoute ) { }
+
+      ngOnInit() {
+        this.route.params.map(params => params['id'])
+          .do(id => this.id = Number.parseInt(id))
+          .subscribe(id => this.getSession());
+      }
+    }
+
+### Routing Resolvers
+
+Route resolvers are useful when you want to fetch data before navigating to a component.
+
+    @Injectable()
+    export class VehicleResolver implements Resolve<Vehicle> {
+      constructor(
+        private vehicleService: VehicleService,
+        private router: Router
+      ) { }
+
+      resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
+        let id = +route.params['id'];
+        return this.vehicleService.getVehicle(id)
+          .map(vehicle => vehicle ? vehicle : new Vehicle())
+          .catch((error: any) => {
+            console.log(`${error}. Headinb back to vehicle list`);
+            this.router.navigate(['/vehicles']);
+            return Observable.of(null);
+          });
+      }
+    }
+
+In the routing module:
+
+    {
+      path: 'vehicles/:id',
+      component: VehicleComponent,
+      resolve: {
+        vehicle: VehicleResolver
+      }
+    },
+
+You can obtain the resolved data in your component:
+
+    this.route.data.subscribe((data: { vehicle: Vehicle }) => this.vehicle = data.vehicle);
+
+### Routing Guards
+
+Routing guards allow us to make a decision at key points in the routing lifecycle and either continue, abort or take a new direction.
+
+Types of Router Guards:
+
+* Resolve
+  * Pre-fetch data before navigating
+* CanActivate
+  * Are we allowed to navigate to a component?
+* CanActivateChild
+  * Same as CanActivate, but for child routes
+* CanDeactivate
+  * Are we allowed to navigate away from a component?
+* CanLoad
+  * Prevents loading of the templates and JavaScript until the guard has been satisfied
+
+#### CanActivate
+
+Often used for authentication.
+
+    @Injectable()
+    export class AuthGuard implements CanActivate {
+      constructor( private userProfileService: UserProfileService, private router: Router ) { }
+
+      canActivate(next: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
+        if (this.userProfileService.isLoggedIn) {
+          return true;
+        }
+        this.router.navigate(['/login'], { queryParams: { redirectTo: state.url } });
+        return false;
+      }
+    }
+
+    // In app-routing.module.ts
+
+    { 
+      path: 'dashboard',
+      component: DashboardComponent,
+      canActivate: [AuthGuard] // <= this is an array
+    },
+
+### Child Routes
+
+    const routes: Routes = [
+      { path: '', pathMatch: 'full', redirectTo: 'characters', },
+      { path: 'login', component: LoginComponent },
+      {
+        path: 'characters',
+        component: CharactersComponent,
+        canActivate: [CanActivateAuthGuard],
+        children: [
+          { path: '', component: CharacterListComponent },
+          { path: ':id', component: CharacterComponent }
+        ]
+      },
+    ];
+
