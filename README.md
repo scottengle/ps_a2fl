@@ -732,3 +732,155 @@ Often used for authentication.
       },
     ];
 
+## Angular Modules In Depth
+
+Angular modules help organize our apps into cohesive blocks of functionality.
+
+### Types of Feature Modules
+
+* Domain
+* Routed
+* Service
+* Widget
+
+### Eagerly Loading Modules
+
+Eager loading is when we load a feature module at start up, with the root module.
+
+Ideal for components that are needed at startup.
+
+    // in characters-router.module.ts
+
+    const routes: Routes = [
+      {
+        path: 'characters',
+        component: CharactersComponent,
+        children: [
+          { path: '', component: CharacterListComponent },
+          { path: ':id', component: CharacterComponent },
+        ]
+      }
+    ];
+
+    @NgModule({
+      imports: [RouterModule.forChild(routes)],
+      exports: [RouterModule]
+    })
+    export class CharactersRouterModule { }
+
+    export const routedComponents = [
+      CharactersComponent,
+      CharacterListComponent,
+      CharacterComponent
+    ];
+
+    // in app.module.ts
+
+    @NgModule({
+      imports: [
+        BrowserModule,
+        FormsModule,
+        HttpModule,
+        CharactersModule,   // <= this is where the Characters routing module is imported
+        AppRoutingModule    // <= this is listed last because it has a `**` route
+      ]
+    })
+    export class AppModule { }
+
+Order matters! If you have a catch-all route (or `**` route), make sure it is loaded last.
+
+### Lazily Loaded Modules
+
+Loading modules on demand, as needed, just in time. Lowers the initial payload, improving the app startup experience.
+
+    // in app-routing.module.ts
+
+    const routes: Routes = [
+      { path: '', pathMatch: 'full', redirectTo: 'characters' },
+      { path: 'characters', loadChildren: 'app/characters/characters.module#CharactersModule' },
+      { path: 'vehicles', loadChildren: 'app/vehicles/vehicles.module#VehiclesModule' },
+      { path: '**', pathMatch: 'full', component: PageNotFoundComponent }
+    ];
+
+### Preload Strategies
+
+When a user navigates to a lazily loadable module, the content has to be fetched from the server, which may cause a delay.
+
+The router can preload lazily loadable modules in the background.
+
+    // in app-routing.module.ts
+
+    import { NgModule } from '@angular/core';
+    import { PreloadAllModules, NoPreloading, Routes, RouterModule } from '@angular/router';
+
+    @NgModule({
+      imports: [RouterModule.forRoot(routes, { preloadStrategy: PreloadAllModules })],
+      exports: [RouterModule],
+    })
+    export class AppRoutingModule { }
+
+### Custom Preload Strategies
+
+You can create custom preload strategies.
+
+    // in preload-strategy.ts
+
+    export class PreloadSelectedModulesList implements PreloadingStrategy {
+      preload(route: Route, load: Function): Observable<any> {
+        return route.data && route.data['preload'] ? load() : of(null);
+      }
+    }
+
+    // in app-routing.module.ts
+
+    {
+      path: 'speakers', loadChildren: 'app/speakers/speakers.module*SpeakersModule',
+      data: { preload: true }
+    },
+
+    // in app-routing.module.ts
+
+    @NgModule({
+      imports: [RouterModule.forRoot(routes, { preloadingStrategy: PreloadSelectedModulesList })],
+      exports: [RouterModule],
+      providers: [PreloadSelectedModulesList]
+    })
+    export class AppRoutingModule { }
+
+### Feature Modules
+
+The four types of feature moduels:
+
+* Domain
+  * Modules imported into the root AppModule, typically without routing
+* Routed
+  * Routed feature modules are Domain feature modules that are the targets of navigation routes
+* Service
+  * Service feature modules contain singleton services used by anyone across the app
+  * Generally, all providers, no components
+  * Imported once in app root module
+  * don't import core module into other modules
+* Widget (i.e. shared modules)
+  * shared feature modules generally contain components, directives and pipes
+  * Import these in every module that uses them
+
+Viewed another way:
+
+    Type      Declarations  Providers  Exports  Imported By       Examples
+    ----------------------------------------------------------------------------------------
+    Domain    √             Rare       Some     Feature           MenuModule
+    Routed    √             Rare       x        Nobody if Lazy    CharactersModule
+    Service   x             √          x        AppModule         CoreModule, HttpModule
+    Widget    √             Rare       √        Feature           CommonModule, SharedModule
+
+### Provider Tips
+
+It is important to consider how we want our providers to behave in the module system.
+
+#### Providing Services and Their Behavior
+
+A service provided in a component, is accessible to that component and to its children. Good examples: login component, login service
+
+When we import a module with providers, we'll get a new instance of that service upon injection
+
+Be careful putting providers in a module that can be imported more than once
