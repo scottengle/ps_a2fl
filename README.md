@@ -330,3 +330,198 @@ You can create your own pipes using the `@Pipe` decorator.
           .replace(/(?:^|\s)[a-z]/g, m => m.toUpperCase());
       }
     }
+
+## Services, Dependency Injection, and Component Lifecycle Hooks
+
+### Services
+
+Services provide anything our application needs. It often shares data or functions between other Angular features.
+
+Services are just classes in Angular.
+
+    import { Injectable } from '@angular/core';
+
+    @Injectable()
+    export class VehicleService {
+      getVehicles() {
+        return [
+          new Vehicle(10, 'Millenium Falcon'),
+          new Vehicle(12, 'X-Wing Fighter'),
+          new Vehicle(14, 'TIE Fighter')
+        ]
+      }
+    }
+
+### Dependency Injection
+
+Dependency Injection is how we provide an instance of a class to another Angular feature.
+
+    export class VehicleListComponent {
+      vehicles: Vehicle[];
+
+      constructor( private vehicleService: VehicleService ) { }
+    }
+
+Injecting a service into another service:
+
+    // @Injectable lets Angular know that the service may have things that can be injected into it
+    
+    @Injectable() 
+    export class VehicleService {
+      constructor( private http: Http) { } // <= injecting http service
+
+      getVehicles() {
+        return this.http.get(vehiclesUrl)
+          .map((res: Response)) => res.json().data);
+      }
+    }
+
+The general rule of thumb is that all services have the `@Injectable` decorator added to it.
+
+### Injectors
+
+When we inject a service, Angular searches the appropriate injectors for it.
+
+There is one injector for the application root, and a hierarchical DI system with a tree of injectors that parallel an applications component tree.
+
+Register a provider in the Component providers array only when the provider must be hidden from Components outside of the component's injector tree. Generally speaking, it is better to register providers in the AppModule provider array. Provide a service once if you want a singleton.
+
+Angular will look for and provide providers in a prototypal way, by looking at the component and then further up the component tree, all the way to the AppModule.
+
+### Component Lifecycle Hooks
+
+Lifecycle Hooks allow us to tap into specific moments in the application lifecycle to perform logic.
+
+Specifying that a component implements a particular lifecycle hook using the interface provides compile-time safety.
+
+Common Component Lifecycle Hooks
+
+1. ngOnInit
+2. ngOnChanges
+3. ngAfterViewInit
+4. ngOnChanges
+5. ngOnDestroy
+
+Example:
+
+    import { Component, EventEmitter, Input, Output, OnChanges, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
+
+    @Component({
+      // ...
+    })
+    export class CharacterComponent implements OnChanges, OnInit, AfterViewInit, OnDestroy {
+      @Input() character: Character
+
+      ngAfterViewInit() {
+        console.log(`ngAfterViewInit for ${this.character.name}`);
+      }
+
+      ngOnChanges() {
+        console.log(`ngOnChanges for ${this.character.name}`);
+      }
+
+      ngOnDestroy() {
+        console.log(`ngOnDestroy for ${this.character.name}`);
+      }
+
+      ngOnInit() {
+        console.log(`ngOnInit for ${this.character.name}`);
+      }
+    }
+
+## Data with HTTP
+
+### HTTP
+
+We use HTTP to get and save data with Promises or Observables. We isolate the HTTP calls in a shared Service.
+
+HTTP Requirements
+
+* import the module
+    
+    import { HttpModule } from '@angular/http';`
+    @NgModule({
+      imports: [HttpModule]
+    })
+    export class AppModule { }
+
+* Define a Service
+
+    @Injectable()
+    export class VehicleService {
+      constructor( private http: Http) { }
+
+      getVehicles() {
+        return this.http.get('api/vehicles')
+          .map((response: Response) => <Vehicle[]>response.json().data)
+          .catch(this.handleError);
+      }
+
+      private handleError(error: Response) {
+        console.error(error);
+        return Observable.throw(error.json().error || 'Server error');
+      }
+    }
+
+* Subscribe to the Observable
+
+    constructor(private vehicleService: VehicleService) { }
+    getHeroes() {
+      this.vehicleService.getVehicles()
+        .subscribe(
+          vehicles => this.vehicles = vehicles,
+          error => this.errorMessage = <any>error
+        );
+    }
+    ngOnInit() { this.getHeroes(); }
+
+### RxJs
+
+Reactive JS implements the asynchronous observable pattern and is widely used in Angular 2.
+
+For production, to minimize code bloat, only import parts of RxJs that you are using.
+
+One approach is to create a separate import file:
+
+    // in app.module.ts
+
+    import './rxjs-extensions';
+
+    // in rxjs-extensions.ts
+
+    import 'rxjs/add/operator/catch';
+    import 'rxjs/add/operator/do';
+    import 'rxjs/add/operator/map';
+    import 'rxjs/add/operator/toPromise';
+
+RxJs is an eventing system. You can define an observable that can be subscribed to by other components.
+
+### Async Pipe
+
+The Async Pipe receives a Promise or Observable as input and subscribes to the input, eventually emitting the value(s) as changes arrive.
+
+Async Pipes simplify components. The observables can be sent back to the screen.
+
+    // in vehicle-list.component.ts
+
+    export class VehicleListComponent {
+      vehicles: Observable<Vehicle[]>;    // property becomes an Observable
+      constructor(private vehicleService: VehicleService) { }
+      getVehicles() {
+        this.vehicles = this.vehicleService.getVehicles();    // set the Observable from the service
+      }
+    }
+
+    // in vehicle-list.component.html
+
+    <ul>
+      <li *ngFor="let vehicle of vehicles | async">    // subscribes to the vehicles Observable
+        {{ vehicle.name }}
+      </li>
+    </ul>
+
+The Async Pipe is self-cleaning. It will automatically unsubscribe from the Observable when the template goes away.
+
+The Async Pipe can handle both Promises and Observables.
+
+The Async Pipe 
